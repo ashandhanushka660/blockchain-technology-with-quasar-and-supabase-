@@ -349,20 +349,45 @@
       </q-card>
     </q-dialog>
 
-    <!-- Delete Confirmation -->
+    <!-- Delete Confirmation with Type to Confirm -->
     <q-dialog v-model="showDeleteDialog">
-       <q-card style="width: 350px; border-radius: 16px;">
+       <q-card style="width: 400px; border-radius: 20px;">
         <q-card-section class="column items-center q-pb-none q-pt-lg">
-          <q-avatar icon="delete" color="red-1" text-color="negative" size="64px" class="q-mb-md" />
+          <div class="bg-red-50 p-4 rounded-full mb-4">
+             <q-icon name="warning" color="negative" size="32px" />
+          </div>
           <div class="text-h6 font-bold text-slate-800">Delete Wallet?</div>
-          <div class="text-center text-slate-500 q-mt-sm">Are you sure you want to delete <span class="font-bold text-slate-800">{{ deletingContact?.name }}</span>?</div>
+          <div class="text-center text-slate-500 q-mt-sm px-4">
+            To confirm deletion, please type <span class="font-bold text-slate-800 select-all">"{{ deletingContact?.name }}"</span> below.
+          </div>
         </q-card-section>
-        <q-card-actions align="center" class="q-pa-md q-mt-sm">
-           <q-btn flat label="Cancel" color="grey" v-close-popup />
-           <q-btn unelevated label="Delete" color="negative" @click="deleteContact" />
+
+        <q-card-section class="q-px-lg">
+           <q-input 
+             v-model="deleteConfirmationInput" 
+             outlined 
+             dense 
+             placeholder="Type wallet name" 
+             class="rounded-lg"
+             :class="{'border-red-300': deleteConfirmationInput && deleteConfirmationInput !== deletingContact?.name}"
+             autofocus
+           />
+        </q-card-section>
+
+        <q-card-actions align="center" class="q-pa-md q-pt-none">
+           <q-btn flat label="Cancel" color="grey" v-close-popup class="rounded-xl px-6" />
+           <q-btn 
+             unelevated 
+             label="Delete Wallet" 
+             color="negative" 
+             class="rounded-xl px-6"
+             :disable="deleteConfirmationInput !== deletingContact?.name"
+             @click="deleteContact" 
+           />
         </q-card-actions>
        </q-card>
     </q-dialog>
+
   </q-page>
 </template>
 
@@ -387,13 +412,12 @@ const showReceiveDialog = ref(false)
 const showAddModal = ref(false)
 const showDeleteDialog = ref(false)
 
-// Use store refs for reactivity
 const { selectedWalletId, contacts } = storeToRefs(contactsStore)
 
-// We still keep query for UI search
 const searchQuery = ref('')
 const editingContact = ref(null)
 const deletingContact = ref(null)
+const deleteConfirmationInput = ref('')
 
 const sendForm = ref({
   recipientAddress: '',
@@ -411,10 +435,8 @@ const formData = ref({
 
 const userProfile = computed(() => authStore.user || {})
 
-// Unified Wallet List
 const allWallets = computed(() => {
   const list = []
-  // 1. Primary Wallet
   if (userProfile.value && userProfile.value.id) {
     list.push({
       id: 'main-wallet',
@@ -425,8 +447,6 @@ const allWallets = computed(() => {
       is_favorite: true
     })
   }
-  // 2. Saved Contacts (From Store, already has 'balance')
-  // Note: store.contacts now has 'balance' populated by fetchContacts
   list.push(...contacts.value.map(c => ({...c, isMain: false})))
   return list
 })
@@ -441,7 +461,6 @@ const filteredContacts = computed(() => {
 })
 
 const currentWallet = computed(() => {
-   // Use helper from store directly or logic here
    if (!selectedWalletId.value) return null
    return allWallets.value.find(w => w.id === selectedWalletId.value) || null
 })
@@ -457,7 +476,6 @@ onMounted(async () => {
   }
 })
 
-// Wallet Selection
 function selectWallet(contact) {
    if (selectedWalletId.value === contact.id) {
       contactsStore.setSelectedWallet(null)
@@ -497,7 +515,6 @@ function validateMainAction(action) {
   }
 }
 
-// Helpers
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0)
 }
@@ -523,7 +540,6 @@ function copyWalletId(addr) {
   copyToClipboard(addr || '').then(() => $q.notify({ type: 'positive', message: 'ID copied!' }))
 }
 
-// Contact Logic
 function editContact(contact) {
   editingContact.value = contact
   formData.value = { name: contact.name, wallet_address: contact.wallet_address, notes: contact.notes || '', is_favorite: contact.is_favorite }
@@ -547,19 +563,22 @@ async function saveContact() {
     $q.notify({ type: 'negative', message: result.error })
   }
 }
+
 function confirmDelete(contact) {
   deletingContact.value = contact
+  deleteConfirmationInput.value = ''
   showDeleteDialog.value = true
 }
 async function deleteContact() {
   if (!deletingContact.value) return
+  if (deleteConfirmationInput.value !== deletingContact.value.name) return
+  
   await contactsStore.deleteContact(deletingContact.value.id)
   showDeleteDialog.value = false
   deletingContact.value = null
   $q.notify({ type: 'positive', message: 'Deleted' })
 }
 
-// Send Money Logic
 const handleSendMoney = async () => {
    if (!currentWallet.value) return
    if (sendForm.value.amount > currentWallet.value.balance) {
@@ -567,38 +586,13 @@ const handleSendMoney = async () => {
       return
    }
 
-   // ACID transfer request
    const result = await contactsStore.transferFunds(
       authStore.user.id,
       selectedWalletId.value,
-      // Note: recipientAddress is just a string here, but transferFunds expects ID if it's internal. 
-      // Current transferFunds impl expects 'to_wallet_id' to be a Contact ID. 
-      // But user types an ADDRESS.
-      // We need to resolve address -> ID if logic demands it, OR just log it if external.
-      // FOR PROTOTYPE: We will mock that recipient is just a "External" or check if it matches a contact.
-      // Let's improve transferFunds later for external. 
-      // For now, pass 'recipientAddress' as ID is wrong if it's not a UUID. 
-      // Let's pass 'recipientAddress' as the ID? No, that breaks SQL UUID type.
-      // I'll assume for this prototype we are transferring to "External" and just deducting.
-      // Wait, user asked for ACID property. 
-      // Use 'transferFunds' logic but adapt for external.
-      'external', // To ID (placeholder)
+      'external', // Logic handled in store
       sendForm.value.amount,
       sendForm.value.description
    )
-   
-   // Actually, I need to check if recipient is in contacts to get their ID for valid transfer
-   // If not, we just deduct from sender (External Send).
-   
-   // Let's update Store to handle this "External" case or I handle it here.
-   // I'll call transferFunds but modified. 
-   // Wait, I can't modify store easily again in this turn without another write.
-   // I'll rely on the store's logic I wrote:
-   // Store logic checks: `this.contacts.find(c => c.id === toId)`.
-   // If I pass 'external', it won't find receiver, so it won't add balance, but IT WILL DEDUCT from sender.
-   // This is actually CORRECT for external send!
-   
-   // So I pass 'mock-external-id' as toId.
    
    if (result.success) {
       $q.notify({ type: 'positive', message: 'Transfer successful!' })

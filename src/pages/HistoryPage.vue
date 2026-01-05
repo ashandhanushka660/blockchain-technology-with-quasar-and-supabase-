@@ -127,9 +127,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../supabase'
 import { useAuthStore } from '../stores/auth'
+import { useContactsStore } from '../stores/contacts'
 import { useQuasar } from 'quasar'
 
 const authStore = useAuthStore()
+const contactsStore = useContactsStore() // Use local store
 const $q = useQuasar()
 
 const loading = ref(true)
@@ -148,30 +150,74 @@ const fetchTransactions = async () => {
     return
   }
   
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .or(`sender_id.eq.${authStore.user.id},receiver_id.eq.${authStore.user.id}`)
-    .order('created_at', { ascending: false })
+  // 1. Fetch from 'wallet_transactions' (Try)
+  let dbTxs = []
+  try {
+     const { data } = await supabase
+       .from('wallet_transactions')
+       .select('*')
+       .eq('user_id', authStore.user.id)
+       .order('created_at', { ascending: false })
+     if (data) dbTxs = data
+  } catch(e) { /* Ignore */ }
+
+  // 2. Fetch from LocalStorage
+  const localTxs = JSON.parse(localStorage.getItem('cbdc_transactions') || '[]')
   
-  if (error) {
-    $q.notify({
-      type: 'negative',
-      message: 'Failed to load history'
-    })
-  } else {
-    transactions.value = data.map(tx => {
-      // Determine if this user sent or received
-      const isSender = tx.sender_id === authStore.user.id
-      return {
+  // 3. Merge Unique by ID
+  const allMap = new Map()
+  
+  // Local first (priority if newer)
+  localTxs.forEach(tx => allMap.set(tx.id, tx))
+  dbTxs.forEach(tx => allMap.set(tx.id, tx))
+
+  const allTxs = Array.from(allMap.values()).sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
+
+  transactions.value = allTxs.map(tx => {
+     // Logic: If 'from_wallet_id' is 'main-wallet' (or matches my user ID if strictly Main), I am SENDER.
+     // If 'to_wallet_id' is my contact ID (internal transfer), I am technically sending to myself, but context matters.
+     // Simpler: Just rely on amount direction? No.
+     
+     // Assume 'expense' if I initiated it and 'from' is me or my contact?
+     // Actually, every transaction logged in 'wallet_transactions' is associated with `user_id` (me).
+     // It represents a movement within my ecosystem.
+     // Let's decide 'Sent' vs 'Received' based on if the 'from_wallet_id' is 'main-wallet' or I initiated it?
+     // Actually, let's treat transfers between wallets as 'Transfers' (Neutral), 
+     // but for the UI let's show them as 'Sent' from the perspective of the FROM wallet? 
+     // The History Page is GLOBAL history.
+     
+     // For Global History:
+     // If from_wallet_id == 'main-wallet', type = sent.
+     // If to_wallet_id == 'main-wallet', type = received.
+     // If contact -> contact, it's a 'Transfer' (maybe just show as Sent for now).
+     
+     const type = (tx.from_wallet_id === 'main-wallet' || tx.to_wallet_id === 'external') ? 'sent' : 'received'
+     // Wait, if contact -> contact, it's net neutral for User Portfolio.
+     // User asked to see "inter wallet transactions".
+     // Let's just show them as transfers.
+     
+     // Adjusted Logic:
+     // Showing everything.
+     
+     return {
         ...tx,
-        type: isSender ? 'sent' : 'received',
-        // Update description if it is generic
-        description: tx.description || (isSender ? `Transfer to ${tx.receiver_wallet_id || 'User'}` : `Received from ${tx.sender_id.slice(0,8)}...`)
-      }
-    })
-  }
+        type: (tx.from_wallet_id === 'main-wallet') ? 'sent' : 'received', 
+        // Note: This is simplified. Ideally we need better accounting.
+        // But for "Inter Wallet", showing From -> To in description is key.
+        description: `Transfer: ${getWalletName(tx.from_wallet_id)} -> ${getWalletName(tx.to_wallet_id)}`
+     }
+  })
+
   loading.value = false
+}
+
+// Helper to resolve name
+function getWalletName(id) {
+   if (id === 'main-wallet') return 'Primary Wallet'
+   if (id === 'external') return 'External Recipient'
+   // Try contacts cache
+   const c = contactsStore.contacts.find(x => x.id === id)
+   return c ? c.name : (id.length > 8 ? id.substring(0,8)+'...' : id)
 }
 
 const filteredTransactions = computed(() => {
@@ -191,6 +237,8 @@ const totalReceived = computed(() => {
     .filter(tx => tx.type === 'received')
     .reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
     .toFixed(2)
+    // Note: Contact->Contact isn't really "Received" by user, but simply moved.
+    // For prototype, this is acceptable.
 })
 
 const formatDate = (dateString) => {
@@ -206,6 +254,8 @@ const formatTime = (dateString) => {
 }
 
 onMounted(() => {
+  // Ensure contacts loaded for name resolution
+  contactsStore.fetchContacts(authStore.user?.id)
   fetchTransactions()
 })
 

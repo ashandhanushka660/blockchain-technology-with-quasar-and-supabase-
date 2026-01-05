@@ -13,7 +13,7 @@ const routes = [
       { path: 'wallet', component: () => import('../pages/WalletPage.vue') },
       { path: 'analytics', component: () => import('../pages/AnalyticsPage.vue') },
       { path: 'profile', component: () => import('../pages/IndexPage.vue') }, // Placeholder
-      { path: 'settings', component: () => import('../pages/IndexPage.vue') } // Placeholder
+      { path: 'settings', component: () => import('../pages/SettingsPage.vue') }
     ]
   },
   {

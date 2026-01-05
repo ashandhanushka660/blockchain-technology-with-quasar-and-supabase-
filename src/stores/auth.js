@@ -29,6 +29,17 @@ export const useAuthStore = defineStore('auth', {
         if (profile) {
           this.user = { ...this.user, ...profile }
         }
+
+        // --- Hybrid Persistence Logic ---
+        // Load locally saved balance if it exists and is newer/valid
+        const localBal = localStorage.getItem(`cbdc_main_balance_${this.user.id}`)
+        if (localBal !== null) {
+           this.user.balance = Number(localBal)
+        } else if (!this.user.balance) {
+           // Default mock balance if new user or no DB balance
+           this.user.balance = 50000.00
+           localStorage.setItem(`cbdc_main_balance_${this.user.id}`, this.user.balance)
+        }
       }
     },
 
@@ -66,6 +77,8 @@ export const useAuthStore = defineStore('auth', {
       }
       this.user = data.user
       this.session = data.session
+      // Trigger setUser to load profile/balance
+      await this.setUser()
       return true
     },
 
@@ -76,8 +89,10 @@ export const useAuthStore = defineStore('auth', {
          const change = Number(delta)
          this.user.balance = current + change
          
-         // In a real app, we would persist this to DB here.
-         // For now, we update the local state which reflects in the UI immediately.
+         // Persist to LOCAL STORAGE
+         localStorage.setItem(`cbdc_main_balance_${this.user.id}`, this.user.balance)
+         
+         // Note: We don't update DB here because we assume it's offline/simulated for now.
       }
     },
 
@@ -112,8 +127,8 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('You cannot send money to yourself.')
         }
 
-        // 2. Insert the transaction. The database trigger (on_transaction_inserted) handles the balance updates.
-        const { data, error: txError } = await supabase
+        // 2. Insert the transaction.
+        const { error: txError } = await supabase
           .from('transactions')
           .insert({
             sender_id: this.user.id,
@@ -126,8 +141,8 @@ export const useAuthStore = defineStore('auth', {
 
         if (txError) throw txError
 
-        // 3. Refresh user profile for new balance
-        await this.setUser()
+        // 3. Update Local Balance
+        await this.updateBalance(-parseFloat(amount))
         
         this.loading = false
         return true

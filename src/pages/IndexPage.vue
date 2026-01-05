@@ -138,19 +138,31 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
-          <q-input
-            v-model="sendForm.recipientAddress"
-            label="Recipient Wallet ID"
-            placeholder="e.g., CBDC-xxxx"
-            dark filled
-            color="primary"
-            class="premium-input"
-            label-color="grey-4"
-          >
-            <template v-slot:prepend>
-              <q-icon name="wallet" color="primary" />
-            </template>
-          </q-input>
+          <div>
+            <q-input
+              v-model="sendForm.recipientAddress"
+              label="Recipient Wallet ID"
+              placeholder="e.g., CBDC-xxxx"
+              dark filled
+              color="primary"
+              class="premium-input"
+              label-color="grey-4"
+            >
+              <template v-slot:prepend>
+                <q-icon name="wallet" color="primary" />
+              </template>
+            </q-input>
+            <q-btn 
+              flat 
+              dense 
+              no-caps 
+              label="📇 Select from Contacts" 
+              color="primary" 
+              class="q-mt-sm"
+              @click="showContactSelector = true"
+              size="sm"
+            />
+          </div>
 
           <q-input
             v-model.number="sendForm.amount"
@@ -223,24 +235,100 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <!-- Contact Selector Dialog -->
+    <q-dialog v-model="showContactSelector" backdrop-filter="blur(10px)">
+      <q-card class="glass-card q-pa-lg text-white" style="width: 500px; max-width: 90vw; border-radius: 24px;">
+        <q-card-section class="q-pb-none">
+          <div class="text-h6 text-weight-bold flex items-center justify-between">
+            Select Contact
+            <q-btn icon="close" flat round dense v-close-popup />
+          </div>
+          <p class="text-subtitle2 text-grey-4 q-mt-xs">Choose a saved wallet address</p>
+        </q-card-section>
+
+        <q-card-section>
+          <q-input
+            v-model="contactSearch"
+            placeholder="Search contacts..."
+            dark filled
+            color="primary"
+            class="premium-input q-mb-md"
+          >
+            <template v-slot:prepend>
+              <q-icon name="search" color="primary" />
+            </template>
+          </q-input>
+
+          <q-list v-if="filteredContactsList.length > 0" separator class="rounded-xl overflow-hidden" style="max-height: 400px; overflow-y: auto;">
+            <q-item 
+              v-for="contact in filteredContactsList" 
+              :key="contact.id"
+              clickable
+              v-ripple
+              @click="selectContact(contact)"
+              class="bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <q-item-section avatar>
+                <q-avatar color="primary" text-color="white">
+                  {{ getContactInitials(contact.name) }}
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="text-weight-bold">{{ contact.name }}</q-item-label>
+                <q-item-label caption class="text-grey-4">
+                  {{ formatContactAddress(contact.wallet_address) }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side v-if="contact.is_favorite">
+                <q-icon name="star" color="yellow" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+
+          <div v-else class="text-center q-pa-lg text-grey-5">
+            <q-icon name="contacts" size="48px" class="q-mb-sm" />
+            <div>{{ contactSearch ? 'No contacts found' : 'No saved contacts yet' }}</div>
+            <q-btn 
+              flat 
+              no-caps 
+              label="Go to Contacts" 
+              color="primary" 
+              class="q-mt-md"
+              @click="$router.push('/contacts')"
+              v-close-popup
+            />
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useContactsStore } from '../stores/contacts'
 import { supabase } from '../supabase'
 import { useQuasar, copyToClipboard } from 'quasar'
 import QrcodeVue from 'qrcode.vue'
 
+const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
+const contactsStore = useContactsStore()
 const $q = useQuasar()
 const transactions = ref([])
 
 const showSendMoneyDialog = ref(false)
 const showReceiveDialog = ref(false)
+const showContactSelector = ref(false)
+const contactSearch = ref('')
+
 const sendForm = ref({
   recipientAddress: '',
+  recipientName: '',
   amount: 0,
   description: ''
 })
@@ -257,6 +345,13 @@ const formattedBalance = computed(() => {
 const maskedWalletId = computed(() => {
   const addr = userProfile.value.wallet_address || 'CBDC-XXXX'
   return addr.substring(0, 7) + '...' + addr.substring(addr.length - 4)
+})
+
+const filteredContactsList = computed(() => {
+  if (!contactSearch.value) {
+    return contactsStore.sortedContacts
+  }
+  return contactsStore.getContactsByName(contactSearch.value)
 })
 
 const fetchTransactions = async () => {
@@ -277,6 +372,28 @@ const fetchTransactions = async () => {
       icon: tx.type === 'transfer' ? 'send' : 'account_balance'
     }))
   }
+}
+
+function getContactInitials(name) {
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+function formatContactAddress(address) {
+  if (!address) return ''
+  return `${address.slice(0, 10)}...${address.slice(-6)}`
+}
+
+function selectContact(contact) {
+  sendForm.value.recipientAddress = contact.wallet_address
+  sendForm.value.recipientName = contact.name
+  sendForm.value.description = `Payment to ${contact.name}`
+  showContactSelector.value = false
+  contactSearch.value = ''
 }
 
 const handleSendMoney = async () => {
@@ -310,7 +427,7 @@ const handleSendMoney = async () => {
     })
     showSendMoneyDialog.value = false
     // Reset form
-    sendForm.value = { recipientAddress: '', amount: 0, description: '' }
+    sendForm.value = { recipientAddress: '', recipientName: '', amount: 0, description: '' }
     // Refresh list
     fetchTransactions()
   } else {
@@ -338,8 +455,23 @@ const copyWalletId = () => {
     })
 }
 
+// Watch for query params (from contacts page)
+watch(() => route.query, (newQuery) => {
+  if (newQuery.recipient) {
+    sendForm.value.recipientAddress = newQuery.recipient
+    sendForm.value.recipientName = newQuery.recipientName || ''
+    sendForm.value.description = newQuery.recipientName ? `Payment to ${newQuery.recipientName}` : ''
+    showSendMoneyDialog.value = true
+    // Clear query params
+    router.replace({ query: {} })
+  }
+}, { immediate: true })
+
 onMounted(async () => {
   await authStore.setUser()
+  if (authStore.user) {
+    await contactsStore.fetchContacts(authStore.user.id)
+  }
   fetchTransactions()
 })
 

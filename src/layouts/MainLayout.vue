@@ -151,6 +151,13 @@
             <q-item-section class="font-bold text-base">History</q-item-section>
           </q-item>
 
+          <q-item clickable v-ripple to="/contacts" class="rounded-2xl transition-all h-14 items-center">
+            <q-item-section avatar>
+              <q-icon name="contacts" size="24px" />
+            </q-item-section>
+            <q-item-section class="font-bold text-base">Contacts</q-item-section>
+          </q-item>
+
           <q-item clickable v-ripple to="/analytics" class="rounded-2xl transition-all h-14 items-center">
             <q-item-section avatar>
               <q-icon name="insights" size="24px" />
@@ -210,6 +217,7 @@
         <q-route-tab name="home" icon="grid_view" to="/" />
         <q-route-tab name="wallet" icon="account_balance_wallet" to="/wallet" />
         <q-route-tab name="history" icon="swap_horiz" to="/history" />
+        <q-route-tab name="contacts" icon="contacts" to="/contacts" />
         <q-route-tab name="profile" icon="person_outline" to="/profile" />
       </q-tabs>
     </q-footer>

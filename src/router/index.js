@@ -8,7 +8,8 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', component: () => import('../pages/IndexPage.vue') },
-      { path: 'history', component: () => import('../pages/HistoryPage.vue') }
+      { path: 'history', component: () => import('../pages/HistoryPage.vue') },
+      { path: 'contacts', component: () => import('../pages/ContactsPage.vue') }
     ]
   },
   {

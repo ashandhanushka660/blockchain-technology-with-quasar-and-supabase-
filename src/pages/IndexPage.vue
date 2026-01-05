@@ -4,7 +4,6 @@
       <!-- Welcome Section -->
       <div class="mb-8">
         <h1 class="text-2xl md:text-3xl font-bold text-slate-800">Hello, {{ userProfile.full_name || 'User' }}</h1>
-        <p class="text-slate-500">Welcome back to your CBDC wallet.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">

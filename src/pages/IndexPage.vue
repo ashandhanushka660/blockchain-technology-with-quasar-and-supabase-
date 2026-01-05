@@ -1,9 +1,15 @@
 <template>
   <q-page class="p-4 md:p-10 flex justify-center w-full">
     <div class="w-full max-w-7xl">
-      <!-- Welcome Section -->
-      <div class="mb-8 flex justify-between items-center">
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-800">Hello, {{ userProfile.full_name || 'User' }}</h1>
+      <!-- Welcome Section & Total Balance -->
+      <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-1">Hello, {{ userProfile.full_name || 'User' }}</h1>
+          <div class="flex items-center gap-2 text-slate-500 font-medium">
+            <span>Total Net Worth:</span>
+            <span class="text-slate-800 font-bold text-lg">LKR {{ formatCurrency(totalPortfolioValue) }}</span>
+          </div>
+        </div>
         <div class="flex gap-2">
            <q-btn 
             color="primary" 
@@ -19,7 +25,7 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <!-- Left Column: Primary User Wallet (Always visible) -->
+        <!-- Left Column: Selected Wallet Detail (Viewer) -->
         <div class="lg:col-span-4">
           <!-- Premium Wallet Card -->
           <div class="bg-gradient-to-br from-indigo-700 via-blue-700 to-blue-900 rounded-[2rem] p-8 md:p-10 text-white shadow-2xl mb-8 relative overflow-hidden group min-h-[280px] flex flex-col justify-between border border-white/10">
@@ -32,9 +38,11 @@
             <div class="relative z-10 w-full">
               <div class="flex justify-between items-start mb-6">
                 <!-- Dynamic Title -->
-                <div class="text-xs font-bold opacity-70 uppercase tracking-[0.25em]">{{ currentWallet.isMain ? 'Wallet Hub' : currentWallet.name }}</div>
+                <div class="text-xs font-bold opacity-70 uppercase tracking-[0.25em]">
+                  {{ currentWallet ? (currentWallet.isMain ? 'Wallet Hub' : currentWallet.name) : 'Select a Wallet' }}
+                </div>
                 <!-- Dynamic Badge -->
-                <div class="text-xs font-bold bg-white/20 px-2 py-1 rounded uppercase tracking-tighter">
+                <div v-if="currentWallet" class="text-xs font-bold bg-white/20 px-2 py-1 rounded uppercase tracking-tighter">
                   {{ currentWallet.isMain ? 'Primary' : 'Secondary' }}
                 </div>
               </div>
@@ -45,7 +53,7 @@
                   <span class="text-2xl md:text-3xl font-light opacity-80">LKR</span>
                   <!-- Dynamic Balance -->
                   <span class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter truncate leading-none">
-                    {{ formatCurrency(currentWallet.balance) }}
+                    {{ currentWallet ? formatCurrency(currentWallet.balance) : '---' }}
                   </span>
                 </div>
               </div>
@@ -53,14 +61,14 @@
               <div class="flex justify-between items-end mt-auto">
                 <div class="flex flex-col gap-1">
                   <div class="text-[10px] opacity-50 font-bold uppercase tracking-widest leading-none">
-                    {{ currentWallet.isMain ? 'Your Wallet ID' : 'Wallet ID' }}
+                    {{ currentWallet && currentWallet.isMain ? 'Your Wallet ID' : 'Wallet ID' }}
                   </div>
                   <!-- Dynamic Wallet ID -->
                   <div class="text-sm md:text-base font-mono tracking-[0.1em] whitespace-nowrap">
-                    {{ maskAddress(currentWallet.wallet_address) }}
+                    {{ currentWallet ? maskAddress(currentWallet.wallet_address) : '---' }}
                   </div>
                 </div>
-                <div class="bg-white/10 p-3 rounded-2xl backdrop-blur-2xl border border-white/20 shadow-xl group-hover:bg-white/20 transition-colors cursor-pointer" @click="copyAddress(currentWallet.wallet_address)">
+                <div v-if="currentWallet" class="bg-white/10 p-3 rounded-2xl backdrop-blur-2xl border border-white/20 shadow-xl group-hover:bg-white/20 transition-colors cursor-pointer" @click="copyWalletId(currentWallet.wallet_address)">
                   <q-icon name="content_copy" size="sm" class="opacity-80" />
                 </div>
               </div>
@@ -72,7 +80,8 @@
             <q-btn 
               class="flex flex-col items-center p-4 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow py-6"
               flat no-caps
-              @click="showSendMoneyDialog = true"
+              :class="{'opacity-50': !currentWallet}"
+              @click="validateMainAction('send')"
             >
               <q-avatar color="blue-50" text-color="primary" icon="send" size="xl" />
               <div class="text-sm font-bold mt-3 text-slate-700">Send</div>
@@ -80,7 +89,8 @@
             <q-btn 
               class="flex flex-col items-center p-4 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow py-6"
               flat no-caps
-              @click="showReceiveDialog = true"
+              :class="{'opacity-50': !currentWallet}"
+              @click="validateMainAction('receive')"
             >
               <q-avatar color="green-50" text-color="positive" icon="qr_code" size="xl" />
               <div class="text-sm font-bold mt-3 text-slate-700">Receive</div>
@@ -94,17 +104,17 @@
             label="Add New Wallet" 
             class="full-width md:hidden q-mb-lg rounded-xl q-py-md shadow-lg"
             no-caps 
-            uenelevated
+            unelevated
             @click="showAddModal = true"
           />
         </div>
 
-        <!-- Right Column: Wallet Management (Contacts) -->
+        <!-- Right Column: Wallet Dictionary -->
         <div class="lg:col-span-8">
           <div class="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 min-h-[600px]">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <div>
-                <h2 class="text-2xl font-bold text-slate-800 m-0">Saved Wallets</h2>
+                <h2 class="text-2xl font-bold text-slate-800 m-0">All Wallets</h2>
                 <p class="text-slate-400 text-sm mt-1">Manage your crypto contacts</p>
               </div>
               
@@ -132,7 +142,6 @@
             <div v-else-if="filteredContacts.length === 0" class="text-center p-12 text-slate-400">
                <q-icon name="account_balance_wallet" size="4rem" class="mb-4 opacity-50" />
                <div class="text-lg font-medium">{{ searchQuery ? 'No wallets found matching search' : 'No saved wallets yet' }}</div>
-               <div class="text-sm mt-2 opacity-70">Add a wallet to get started</div>
                <q-btn v-if="!searchQuery" label="Add First Wallet" color="primary" flat class="mt-4" @click="showAddModal = true" />
             </div>
 
@@ -153,17 +162,20 @@
                    <q-icon name="check_circle" size="14px" />
                    Selected
                  </div>
-                 <!-- Favorite Badge (Secondary) -->
-                 <div v-else-if="contact.is_favorite" class="absolute top-0 right-0 bg-yellow-400 text-white p-1 rounded-bl-xl shadow-sm z-10">
+                 <!-- Favorite/Primary Badge (Secondary) -->
+                 <div v-else-if="contact.is_favorite || contact.isMain" class="absolute top-0 right-0 bg-yellow-400 text-white p-1 rounded-bl-xl shadow-sm z-10">
                    <q-icon name="star" size="16px" />
                  </div>
 
                  <div class="flex items-start gap-4 mb-4">
-                   <q-avatar :color="selectedWalletId === contact.id ? 'indigo' : getRandomColor(contact.name)" text-color="white" size="48px" class="shadow-md transition-colors">
+                   <q-avatar :color="selectedWalletId === contact.id ? 'indigo' : (contact.isMain ? 'indigo-9' : getRandomColor(contact.name))" text-color="white" size="48px" class="shadow-md transition-colors">
                      {{ getInitials(contact.name) }}
                    </q-avatar>
                    <div class="overflow-hidden">
-                     <div class="font-bold text-lg text-slate-800 truncate">{{ contact.name }}</div>
+                     <div class="font-bold text-lg text-slate-800 truncate flex items-center gap-1">
+                       {{ contact.name }}
+                       <q-badge v-if="contact.isMain" color="primary" rounded label="YOU" class="text-[0.6rem]" />
+                     </div>
                      <div class="font-mono text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded inline-block mt-1 border border-slate-100">
                         {{ formatAddress(contact.wallet_address) }}
                      </div>
@@ -191,13 +203,17 @@
                    <q-btn flat dense class="bg-slate-50 rounded-xl text-slate-600" :class="{'opacity-50': selectedWalletId !== contact.id}" icon="edit" @click.stop="validateAction(contact, 'edit')">
                       <q-tooltip>Edit</q-tooltip>
                    </q-btn>
-                   <q-btn flat dense class="bg-red-50 rounded-xl text-red-500" :class="{'opacity-50': selectedWalletId !== contact.id}" icon="delete" @click.stop="validateAction(contact, 'delete')">
+                   <!-- Delete Button (Disabled for Main Wallet) -->
+                   <q-btn v-if="!contact.isMain" flat dense class="bg-red-50 rounded-xl text-red-500" :class="{'opacity-50': selectedWalletId !== contact.id}" icon="delete" @click.stop="validateAction(contact, 'delete')">
                       <q-tooltip>Delete</q-tooltip>
-                   </q-btn>  
+                   </q-btn> 
+                   <q-btn v-else flat dense class="bg-slate-50 rounded-xl text-slate-300 cursor-not-allowed" icon="lock">
+                       <q-tooltip>Cannot Delete Primary Wallet</q-tooltip>
+                   </q-btn>
                  </div>
                  
-                 <!-- Favorite Toggle (Hidden but accessible via corner) -->
-                 <q-btn 
+                 <!-- Favorite Toggle -->
+                 <q-btn v-if="!contact.isMain"
                    flat round dense 
                    :icon="contact.is_favorite ? 'star' : 'star_border'" 
                    :color="contact.is_favorite ? 'yellow-8' : 'grey-4'" 
@@ -292,15 +308,15 @@
 
         <q-card-section class="flex flex-center q-py-xl">
           <div class="qr-container bg-white q-pa-md shadow-24" style="border-radius: 20px;">
-            <qrcode-vue :value="userProfile.wallet_address || ''" :size="200" level="H" />
+            <qrcode-vue :value="currentWallet ? currentWallet.wallet_address : ''" :size="200" level="H" />
           </div>
         </q-card-section>
 
         <q-card-section>
-          <div class="bg-white/10 q-pa-md rounded-xl border border-white/10 cursor-pointer" @click="copyWalletId">
+          <div class="bg-white/10 q-pa-md rounded-xl border border-white/10 cursor-pointer" @click="copyWalletId(currentWallet ? currentWallet.wallet_address : '')">
             <div class="text-[10px] text-grey-5 text-weight-bold uppercase tracking-widest q-mb-xs">Your Wallet ID</div>
             <div class="text-h6 font-mono text-primary text-weight-bold break-all">
-              {{ userProfile.wallet_address }}
+              {{ currentWallet ? currentWallet.wallet_address : '---' }}
               <q-icon name="content_copy" size="xs" class="q-ml-sm" />
             </div>
           </div>
@@ -418,41 +434,56 @@ const userProfile = computed(() => authStore.user || {})
 const contacts = computed(() => contactsStore.contacts)
 const loading = computed(() => contactsStore.loading)
 
-const currentWallet = computed(() => {
-  if (!selectedWalletId.value) {
-    // Default to Main User Wallet (Real Balance from DB)
-    return {
+// Combine Main Wallet + Contacts into one list
+const allWallets = computed(() => {
+  const list = []
+  
+  // 1. Primary Wallet
+  if (userProfile.value && userProfile.value.id) {
+    list.push({
+      id: 'main-wallet', // Special ID
       isMain: true,
-      name: userProfile.value.full_name || 'Main Wallet',
+      name: userProfile.value.full_name || 'My Primary Wallet',
+      wallet_address: userProfile.value.wallet_address,
       balance: userProfile.value.balance || 0,
-      wallet_address: userProfile.value.wallet_address || ''
-    }
+      is_favorite: true
+    })
   }
 
-  // Find Selected Wallet from Contacts
-  const contact = contacts.value.find(c => c.id === selectedWalletId.value)
-  if (contact) {
-    // Generate a deterministic consistent mock balance based on the contact ID/Name
-    const seed = contact.name.length + (contact.wallet_address ? contact.wallet_address.charCodeAt(0) : 0)
+  // 2. Saved Contacts
+  const mappedContacts = contacts.value.map(c => {
+    // Calculate mock balance
+    const seed = c.name.length + (c.wallet_address ? c.wallet_address.charCodeAt(0) : 0)
     const mockBalance = (seed * 1234.56) % 50000 
-    
-    // Apply local adjustments (simulated)
-    const adjustment = walletAdjustments.value[contact.id] || 0
-    
+    const adjustment = walletAdjustments.value[c.id] || 0
     return {
+      ...c,
       isMain: false,
-      name: contact.name,
-      balance: Math.max(0, mockBalance - adjustment),
-      wallet_address: contact.wallet_address
+      balance: Math.max(0, mockBalance - adjustment)
     }
-  }
-  
-  return { isMain: true, balance: 0, wallet_address: '' } // Fallback
+  })
+
+  list.push(...mappedContacts)
+  return list
 })
 
 const filteredContacts = computed(() => {
-  if (!searchQuery.value) return contactsStore.sortedContacts
-  return contactsStore.getContactsByName(searchQuery.value)
+  if (!searchQuery.value) return allWallets.value
+  const query = searchQuery.value.toLowerCase()
+  return allWallets.value.filter(c => 
+    c.name.toLowerCase().includes(query) || 
+    (c.wallet_address && c.wallet_address.toLowerCase().includes(query))
+  )
+})
+
+const currentWallet = computed(() => {
+  if (!selectedWalletId.value) return null
+
+  return allWallets.value.find(w => w.id === selectedWalletId.value) || null
+})
+
+const totalPortfolioValue = computed(() => {
+  return allWallets.value.reduce((sum, w) => sum + (w.balance || 0), 0)
 })
 
 // Lifecycle
@@ -465,14 +496,16 @@ onMounted(async () => {
 
 // Methods
 function formatCurrency(amount) {
+  if (amount === undefined || amount === null) return '---'
   return new Intl.NumberFormat('en-LK', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }).format(amount || 0)
+  }).format(amount)
 }
 
 function maskAddress(addr) {
-  if (!addr) return 'CBDC-XXXX'
+  if (!addr) return '---'
+  if (addr === '---') return '---'
   return addr.substring(0, 7) + '...' + addr.substring(addr.length - 4)
 }
 
@@ -482,6 +515,61 @@ function selectWallet(contact) {
     selectedWalletId.value = null // Deselect
   } else {
     selectedWalletId.value = contact.id
+  }
+}
+
+function validateAction(contact, action) {
+  if (selectedWalletId.value !== contact.id) {
+    $q.notify({ 
+      type: 'warning', 
+      message: 'Select the wallet first',
+      caption: 'Click the checkmark icon to activate this wallet.',
+      icon: 'touch_app',
+      position: 'top'
+    })
+    return
+  }
+  
+  if (action === 'send') {
+      sendForm.value.recipientAddress = ''
+      sendForm.value.amount = 0
+      sendForm.value.description = ''
+      showSendMoneyDialog.value = true
+  } else if (action === 'edit') {
+      if (contact.isMain) {
+         $q.notify({ type: 'info', message: 'You cannot edit your primary wallet details here.' })
+         return
+      }
+      editContact(contact)
+  } else if (action === 'delete') {
+      if (contact.isMain) {
+         $q.notify({ type: 'negative', message: 'You cannot delete your primary wallet.' })
+         return
+      }
+      confirmDelete(contact)
+  }
+}
+
+function validateMainAction(action) {
+  if (!selectedWalletId.value) {
+    $q.notify({ 
+      type: 'warning', 
+      message: 'Select a wallet first',
+      caption: 'Please select a wallet from the list to perform this action.',
+      icon: 'touch_app',
+      position: 'top'
+    })
+    return
+  }
+  
+  // Action proceeds
+  if (action === 'send') {
+    sendForm.value.recipientAddress = ''
+    sendForm.value.amount = 0
+    sendForm.value.description = ''
+    showSendMoneyDialog.value = true
+  } else if (action === 'receive') {
+    showReceiveDialog.value = true
   }
 }
 
@@ -502,8 +590,11 @@ function formatAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
-function copyWalletId() {
-  copyToClipboard(currentWallet.value.wallet_address)
+function copyWalletId(addr) {
+  const target = addr || ''
+  if (!target || target === '---') return
+
+  copyToClipboard(target)
     .then(() => $q.notify({ type: 'positive', message: 'ID copied!' }))
     .catch(() => $q.notify({ type: 'negative', message: 'Failed to copy.' }))
 }
@@ -585,38 +676,15 @@ async function toggleFavorite(contactId) {
 }
 
 // Send Money Flow
-function validateAction(contact, action) {
-  if (selectedWalletId.value !== contact.id) {
-    $q.notify({ 
-      type: 'warning', 
-      message: 'Select the wallet first',
-      caption: 'Click the checkmark icon to activate this wallet.',
-      icon: 'touch_app',
-      position: 'top'
-    })
-    return
-  }
-  
-  if (action === 'send') {
-      sendForm.value.recipientAddress = ''
-      sendForm.value.recipientName = ''
-      sendForm.value.amount = 0
-      sendForm.value.description = ''
-      showSendMoneyDialog.value = true
-  } else if (action === 'edit') {
-      editContact(contact)
-  } else if (action === 'delete') {
-      confirmDelete(contact)
-  }
-}
-
 const handleSendMoney = async () => {
   if (!sendForm.value.recipientAddress || sendForm.value.amount <= 0) {
     $q.notify({ type: 'negative', message: 'Invalid details.' })
     return
   }
 
-  const sendingWalletBalance = currentWallet.value.isMain ? userProfile.value.balance : currentWallet.value.balance
+  if (!currentWallet.value) return
+
+  const sendingWalletBalance = currentWallet.value.balance
 
   if (sendForm.value.amount > sendingWalletBalance) {
     $q.notify({ type: 'negative', message: 'Insufficient balance.' })
@@ -668,6 +736,7 @@ defineOptions({
   background: rgba(26, 26, 46, 0.95) !important;
   backdrop-filter: blur(20px) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-clip: padding-box;
 }
 
 .premium-input .q-field__inner {

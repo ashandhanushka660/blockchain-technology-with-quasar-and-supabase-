@@ -101,11 +101,10 @@
             <input 
               v-model="formData.wallet_address" 
               type="text" 
-              placeholder="0x..."
+              placeholder="e.g. CBDC-xxxx or 0x..."
               required
               :disabled="!!editingContact"
-              pattern="^0x[a-fA-F0-9]{40}$"
-              title="Must be a valid Ethereum-style address (0x followed by 40 hex characters)"
+              title="Enter a valid wallet address (e.g., CBDC-xxxx or 0x...)"
             />
             <small v-if="editingContact" class="help-text">Wallet address cannot be changed</small>
           </div>

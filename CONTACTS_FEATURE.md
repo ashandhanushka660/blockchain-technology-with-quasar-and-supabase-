@@ -145,10 +145,13 @@ migrations/
 
 ### Wallet Address
 
-- Must start with "0x"
-- Followed by exactly 40 hexadecimal characters
-- Pattern: `^0x[a-fA-F0-9]{40}$`
-- Example: `0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb`
+### Wallet Address
+
+- Flexible format support
+- Supports Ethereum style (`0x`...)
+- Supports CBDC style (`CBDC-`...)
+- Supports other custom formats
+- Example: `0x742d3...` or `CBDC-6fdd...`
 
 ### Contact Name
 

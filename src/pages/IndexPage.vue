@@ -185,13 +185,13 @@
                       <q-tooltip>Currently Selected</q-tooltip>
                    </q-btn>
 
-                   <q-btn flat dense class="bg-slate-50 rounded-xl text-slate-600" icon="send" @click.stop="openSendMoney(contact)">
+                   <q-btn flat dense class="bg-slate-50 rounded-xl text-slate-600" :class="{'opacity-50': selectedWalletId !== contact.id}" icon="send" @click.stop="validateAction(contact, 'send')">
                       <q-tooltip>Send Money</q-tooltip>
                    </q-btn>
-                   <q-btn flat dense class="bg-slate-50 rounded-xl text-slate-600" icon="edit" @click.stop="editContact(contact)">
+                   <q-btn flat dense class="bg-slate-50 rounded-xl text-slate-600" :class="{'opacity-50': selectedWalletId !== contact.id}" icon="edit" @click.stop="validateAction(contact, 'edit')">
                       <q-tooltip>Edit</q-tooltip>
                    </q-btn>
-                   <q-btn flat dense class="bg-red-50 rounded-xl text-red-500" icon="delete" @click.stop="confirmDelete(contact)">
+                   <q-btn flat dense class="bg-red-50 rounded-xl text-red-500" :class="{'opacity-50': selectedWalletId !== contact.id}" icon="delete" @click.stop="validateAction(contact, 'delete')">
                       <q-tooltip>Delete</q-tooltip>
                    </q-btn>  
                  </div>
@@ -585,11 +585,29 @@ async function toggleFavorite(contactId) {
 }
 
 // Send Money Flow
-function openSendMoney(contact) {
-  sendForm.value.recipientAddress = contact.wallet_address
-  sendForm.value.recipientName = contact.name
-  sendForm.value.description = `Transfer to ${contact.name}`
-  showSendMoneyDialog.value = true
+function validateAction(contact, action) {
+  if (selectedWalletId.value !== contact.id) {
+    $q.notify({ 
+      type: 'warning', 
+      message: 'Select the wallet first',
+      caption: 'Click the checkmark icon to activate this wallet.',
+      icon: 'touch_app',
+      position: 'top'
+    })
+    return
+  }
+  
+  if (action === 'send') {
+      sendForm.value.recipientAddress = ''
+      sendForm.value.recipientName = ''
+      sendForm.value.amount = 0
+      sendForm.value.description = ''
+      showSendMoneyDialog.value = true
+  } else if (action === 'edit') {
+      editContact(contact)
+  } else if (action === 'delete') {
+      confirmDelete(contact)
+  }
 }
 
 const handleSendMoney = async () => {

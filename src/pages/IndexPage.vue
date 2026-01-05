@@ -397,6 +397,7 @@ const selectedWalletId = ref(null)
 const searchQuery = ref('')
 const editingContact = ref(null)
 const deletingContact = ref(null)
+const walletAdjustments = ref({}) // Tracks simulated deductions
 
 const sendForm = ref({
   recipientAddress: '',
@@ -419,7 +420,7 @@ const loading = computed(() => contactsStore.loading)
 
 const currentWallet = computed(() => {
   if (!selectedWalletId.value) {
-    // Default to Main User Wallet
+    // Default to Main User Wallet (Real Balance from DB)
     return {
       isMain: true,
       name: userProfile.value.full_name || 'Main Wallet',
@@ -435,10 +436,13 @@ const currentWallet = computed(() => {
     const seed = contact.name.length + (contact.wallet_address ? contact.wallet_address.charCodeAt(0) : 0)
     const mockBalance = (seed * 1234.56) % 50000 
     
+    // Apply local adjustments (simulated)
+    const adjustment = walletAdjustments.value[contact.id] || 0
+    
     return {
       isMain: false,
       name: contact.name,
-      balance: mockBalance,
+      balance: Math.max(0, mockBalance - adjustment),
       wallet_address: contact.wallet_address
     }
   }
@@ -601,12 +605,26 @@ const handleSendMoney = async () => {
     return
   }
 
-  // Note: Only the main wallet can officially send money in this MVP
+  // Handle Simulation for Secondary Wallets
   if (!currentWallet.value.isMain) {
-     $q.notify({ type: 'warning', message: 'Simulated wallets cannot send real transactions yet.' })
+     // Record the deduction
+     const currentAdj = walletAdjustments.value[selectedWalletId.value] || 0
+     walletAdjustments.value[selectedWalletId.value] = currentAdj + sendForm.value.amount
+
+     $q.notify({ 
+       type: 'positive', 
+       message: 'Transaction Successful! (Simulated)',
+       caption: `Sent LKR ${sendForm.value.amount} to ${sendForm.value.recipientAddress}`,
+       timeout: 2500,
+       icon: 'check_circle'
+     })
+     
+     showSendMoneyDialog.value = false
+     sendForm.value = { recipientAddress: '', recipientName: '', amount: 0, description: '' }
      return
   }
 
+  // Real Transaction for Main Wallet
   const success = await authStore.sendMoney(
     sendForm.value.recipientAddress,
     sendForm.value.amount,

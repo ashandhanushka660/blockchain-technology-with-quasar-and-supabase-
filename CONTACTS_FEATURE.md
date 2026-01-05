@@ -246,4 +246,4 @@ If you encounter any issues:
 
 **Version**: 1.0.0  
 **Last Updated**: January 2026  
-**Compatibility**: Rupee CBDC Wallet v1.0+
+**Compatibility**: Wallet Hub v1.0+

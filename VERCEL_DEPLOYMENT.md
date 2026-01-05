@@ -1,4 +1,4 @@
-# 🚀 Vercel Deployment Guide - Rupee CBDC Wallet
+# 🚀 Vercel Deployment Guide - Wallet Hub
 
 ## Prerequisites
 
@@ -279,7 +279,7 @@ Before going live:
 
 ---
 
-**Your Rupee CBDC Wallet is ready for production!** 🎉
+**Your Wallet Hub is ready for production!** 🎉
 
 Live URL: `https://your-project.vercel.app`
 

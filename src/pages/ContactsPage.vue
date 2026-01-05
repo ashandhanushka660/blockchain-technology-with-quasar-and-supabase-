@@ -170,12 +170,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useContactsStore } from '../stores/contacts'
 import { useAuthStore } from '../stores/auth'
-import { useNotificationsStore } from '../stores/notifications'
+import { useNotificationStore } from '../stores/notifications'
 
 const router = useRouter()
 const contactsStore = useContactsStore()
 const authStore = useAuthStore()
-const notificationsStore = useNotificationsStore()
+const notificationStore = useNotificationStore()
 
 const searchQuery = ref('')
 const showAddModal = ref(false)
@@ -219,7 +219,7 @@ function formatAddress(address) {
 async function toggleFavorite(contactId) {
   const result = await contactsStore.toggleFavorite(contactId)
   if (result.success) {
-    notificationsStore.addNotification({
+    notificationStore.addNotification({
       type: 'success',
       message: 'Favorite updated'
     })
@@ -239,12 +239,12 @@ function sendMoney(contact) {
 async function copyAddress(address) {
   try {
     await navigator.clipboard.writeText(address)
-    notificationsStore.addNotification({
+    notificationStore.addNotification({
       type: 'success',
       message: 'Address copied to clipboard!'
     })
   } catch (err) {
-    notificationsStore.addNotification({
+    notificationStore.addNotification({
       type: 'error',
       message: 'Failed to copy address'
     })
@@ -269,13 +269,13 @@ async function deleteContact() {
   const result = await contactsStore.deleteContact(deletingContact.value.id)
   
   if (result.success) {
-    notificationsStore.addNotification({
+    notificationStore.addNotification({
       type: 'success',
       message: 'Contact deleted successfully'
     })
     deletingContact.value = null
   } else {
-    notificationsStore.addNotification({
+    notificationStore.addNotification({
       type: 'error',
       message: result.error || 'Failed to delete contact'
     })
@@ -297,13 +297,13 @@ async function saveContact() {
   }
 
   if (result.success) {
-    notificationsStore.addNotification({
+    notificationStore.addNotification({
       type: 'success',
       message: editingContact.value ? 'Contact updated!' : 'Contact added successfully!'
     })
     closeModal()
   } else {
-    notificationsStore.addNotification({
+    notificationStore.addNotification({
       type: 'error',
       message: result.error || 'Failed to save contact'
     })

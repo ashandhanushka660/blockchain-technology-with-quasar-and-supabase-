@@ -69,6 +69,18 @@ export const useAuthStore = defineStore('auth', {
       return true
     },
 
+    async updateBalance(delta) {
+      if (this.user) {
+         // Convert to number to ensure math is correct
+         const current = Number(this.user.balance) || 0
+         const change = Number(delta)
+         this.user.balance = current + change
+         
+         // In a real app, we would persist this to DB here.
+         // For now, we update the local state which reflects in the UI immediately.
+      }
+    },
+
     async logout() {
       const { error } = await supabase.auth.signOut()
       if (error) {

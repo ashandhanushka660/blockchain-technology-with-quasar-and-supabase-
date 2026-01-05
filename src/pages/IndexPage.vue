@@ -585,11 +585,23 @@ const handleSendMoney = async () => {
       $q.notify({ type: 'negative', message: 'Insufficient balance.' })
       return
    }
+   
+   // Resolution Logic for ACID Transfer
+   let toId = 'external'
+   const recipientAddr = sendForm.value.recipientAddress.trim()
+   const senderId = selectedWalletId.value
+   
+   if (recipientAddr === userProfile.value.wallet_address) {
+      toId = 'main-wallet'
+   } else {
+      const contact = contactsStore.contacts.find(c => c.wallet_address === recipientAddr)
+      if (contact) toId = contact.id
+   }
 
    const result = await contactsStore.transferFunds(
       authStore.user.id,
-      selectedWalletId.value,
-      'external', // Logic handled in store
+      senderId,
+      toId,
       sendForm.value.amount,
       sendForm.value.description
    )

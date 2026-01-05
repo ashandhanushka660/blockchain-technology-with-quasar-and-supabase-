@@ -90,11 +90,16 @@ The application is now running at: **http://localhost:5173**
 
 ## Wallet Address Format
 
-Contacts use **Ethereum-style addresses**:
+Contacts support flexible address formats:
 
-- Format: `0x` + 40 hexadecimal characters
-- Example: `0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb`
-- Validation: Automatic format checking
+- **Ethereum Style**: `0x` + 40 hex characters
+- **CBDC Style**: `CBDC-` + alphanumeric
+- **Other Formats**: Any valid string identifier
+
+Example:
+
+- `0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb`
+- `CBDC-6fdd63e85941`
 
 ## Testing the Feature
 

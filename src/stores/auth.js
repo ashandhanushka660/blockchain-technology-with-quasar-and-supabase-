@@ -102,6 +102,12 @@ export const useAuthStore = defineStore('auth', {
         this.error = error.message
         return false
       }
+      
+      // Clear persistence
+      if (this.user) {
+         localStorage.removeItem(`cbdc_main_balance_${this.user.id}`)
+      }
+      
       this.user = null
       this.session = null
       return true

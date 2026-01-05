@@ -18,7 +18,7 @@
             
             <div class="relative z-10 w-full">
               <div class="flex justify-between items-start mb-6">
-                <div class="text-xs font-bold opacity-70 uppercase tracking-[0.25em]">CBDC Sri Lankan Rupee</div>
+                <div class="text-xs font-bold opacity-70 uppercase tracking-[0.25em]">Wallet Hub Digital Currency</div>
                 <div class="text-xs font-bold bg-white/20 px-2 py-1 rounded uppercase tracking-tighter">Primary</div>
               </div>
               
@@ -131,10 +131,10 @@
       <q-card class="glass-card q-pa-lg text-white" style="width: 450px; border-radius: 24px;">
         <q-card-section class="q-pb-none">
           <div class="text-h6 text-weight-bold flex items-center justify-between">
-            Send LKR CBDC
+            Send Money
             <q-btn icon="close" flat round dense v-close-popup />
           </div>
-          <p class="text-subtitle2 text-grey-4 q-mt-xs">Transfer CBDC funds instantly</p>
+          <p class="text-subtitle2 text-grey-4 q-mt-xs">Transfer funds instantly</p>
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
@@ -211,7 +211,7 @@
       <q-card class="glass-card q-pa-lg text-white text-center" style="width: 400px; border-radius: 24px;">
         <q-card-section class="q-pb-none">
           <div class="text-h6 text-weight-bold flex items-center justify-between">
-            Receive LKR CBDC
+            Receive Money
             <q-btn icon="close" flat round dense v-close-popup />
           </div>
           <p class="text-subtitle2 text-grey-4 q-mt-xs">Scan to pay directly to this wallet</p>

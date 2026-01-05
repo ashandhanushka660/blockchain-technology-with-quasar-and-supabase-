@@ -5,8 +5,8 @@
         <div class="glass-card login-card q-pa-xl shadow-24">
           <div class="text-center q-mb-lg">
             <q-icon name="account_balance_wallet" color="primary" size="64px" class="q-mb-md" />
-            <h1 class="text-h4 text-weight-bolder text-white q-my-none">LKR CBDC</h1>
-            <p class="text-subtitle2 text-grey-4 q-mt-sm">Secure Payment Ecosystem</p>
+            <h1 class="text-h4 text-weight-bolder text-white q-my-none">Wallet Hub</h1>
+            <p class="text-subtitle2 text-grey-4 q-mt-sm">Next Gen Digital Banking</p>
           </div>
 
           <q-form @submit="handleLogin" class="q-gutter-md">

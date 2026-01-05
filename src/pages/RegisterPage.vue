@@ -6,7 +6,7 @@
           <div class="text-center q-mb-lg">
             <q-icon name="person_add" color="primary" size="64px" class="q-mb-md" />
             <h1 class="text-h4 text-weight-bolder text-white q-my-none">Create Wallet</h1>
-            <p class="text-subtitle2 text-grey-4 q-mt-sm">Join the LKR CBDC Revolution</p>
+            <p class="text-subtitle2 text-grey-4 q-mt-sm">Join the Digital Banking Revolution</p>
           </div>
 
           <q-form @submit="handleRegister" class="q-gutter-md">

@@ -17,7 +17,7 @@
             <img src="https://cdn.quasar.dev/logo-v2/svg/logo.svg">
           </q-avatar>
           <q-toolbar-title class="font-bold text-xl md:text-2xl tracking-tight text-indigo-700">
-            LKR CBDC Wallet
+            Wallet Hub
           </q-toolbar-title>
         </div>
 

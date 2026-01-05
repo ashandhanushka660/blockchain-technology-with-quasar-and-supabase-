@@ -109,7 +109,7 @@ export const useAuthStore = defineStore('auth', {
             receiver_wallet_id: recipientWalletId,
             amount: parseFloat(amount),
             type: 'transfer',
-            description: description || 'LKR CBDC Transfer'
+            description: description || 'Wallet Transfer'
           })
 
         if (txError) throw txError

@@ -9,7 +9,11 @@ const routes = [
     children: [
       { path: '', component: () => import('../pages/IndexPage.vue') },
       { path: 'history', component: () => import('../pages/HistoryPage.vue') },
-      { path: 'contacts', component: () => import('../pages/ContactsPage.vue') }
+      { path: 'contacts', component: () => import('../pages/ContactsPage.vue') },
+      { path: 'wallet', component: () => import('../pages/WalletPage.vue') },
+      { path: 'analytics', component: () => import('../pages/AnalyticsPage.vue') },
+      { path: 'profile', component: () => import('../pages/IndexPage.vue') }, // Placeholder
+      { path: 'settings', component: () => import('../pages/IndexPage.vue') } // Placeholder
     ]
   },
   {
